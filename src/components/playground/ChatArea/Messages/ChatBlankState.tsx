@@ -118,7 +118,7 @@ const ChatBlankState = () => {
         >
           <div className="flex items-center justify-center gap-x-2 whitespace-nowrap font-medium">
             <span className="flex items-center font-[600]">
-              Sympathia is here!
+              Seempatia is here!
             </span>
           </div>
           <p>How can I help you?</p>
