@@ -32,21 +32,36 @@ function parseBuffer(
   buffer: string,
   onChunk: (chunk: RunResponse) => void
 ): string {
-  let jsonStartIndex = buffer.indexOf('{')
-  let jsonEndIndex = -1
-
-  while (jsonStartIndex !== -1) {
+  let processed = true
+  
+  // Continue processing while we find complete JSON objects
+  while (processed) {
+    processed = false
+    let jsonStartIndex = buffer.indexOf('{')
+    
+    if (jsonStartIndex === -1) {
+      break // No JSON start found
+    }
+    
     let braceCount = 0
     let inString = false
+    let jsonEndIndex = -1
 
     // Iterate through the buffer to find the end of the JSON object
     for (let i = jsonStartIndex; i < buffer.length; i++) {
       const char = buffer[i]
 
-      // Check if the character is a double quote and the previous character is not a backslash
-      // This is to handle escaped quotes in JSON strings
-      if (char === '"' && buffer[i - 1] !== '\\') {
-        inString = !inString
+      // Handle escaped quotes properly
+      if (char === '"') {
+        // Count consecutive backslashes before the quote
+        let backslashCount = 0
+        for (let j = i - 1; j >= 0 && buffer[j] === '\\'; j--) {
+          backslashCount++
+        }
+        // Quote is escaped only if odd number of backslashes
+        if (backslashCount % 2 === 0) {
+          inString = !inString
+        }
       }
 
       // If the character is not inside a string, count the braces
@@ -68,16 +83,15 @@ function parseBuffer(
       try {
         const parsed = JSON.parse(jsonString) as RunResponse
         processChunk(parsed, onChunk)
+        
+        // Remove the processed JSON from buffer and continue
+        buffer = buffer.slice(jsonEndIndex + 1)
+        processed = true
       } catch {
-        // Skip invalid JSON, continue accumulating
-        break
+        // Skip invalid JSON, remove the problematic part and continue
+        buffer = buffer.slice(jsonStartIndex + 1)
+        processed = true
       }
-      buffer = buffer.slice(jsonEndIndex + 1).trim()
-      jsonStartIndex = buffer.indexOf('{')
-      jsonEndIndex = -1
-    } else {
-      // No complete JSON found, wait for the next chunk
-      break
     }
   }
 
@@ -147,7 +161,6 @@ export default function useAIResponseStream() {
         // Recursively process the stream.
         const processStream = async (): Promise<void> => {
           const { done, value } = await reader.read()
-          console.log("Chunk:", decoder.decode(value, { stream: true }))
           if (done) {
             // Process any final data in the buffer.
             buffer = parseBuffer(buffer, onChunk)
