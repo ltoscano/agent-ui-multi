@@ -2,11 +2,14 @@
 
 A modern chat interface for AI agents built with Next.js, Tailwind CSS, and TypeScript. This template provides a ready-to-use UI for interacting with Agno agents.
 
+**🔐 Now includes authentication system with invitation codes!**
+
 <img src="https://github.com/user-attachments/assets/7765fae5-a813-46cb-993b-904af9bc1672" alt="agent-ui" style="border-radius: 10px; width: 100%; max-width: 800px;" />
 
 ## Features
 
 - 💬 **Modern Chat Interface**: Clean design with real-time streaming support
+- 🔐 **Authentication System**: Secure login with invitation codes
 - 🧩 **Tool Calls Support**: Visualizes agent tool calls and their results
 - 🧠 **Reasoning Steps**: Displays agent reasoning process (when available)
 - 📚 **References Support**: Show sources used by the agent
@@ -18,7 +21,30 @@ A modern chat interface for AI agents built with Next.js, Tailwind CSS, and Type
 
 ### Prerequisites
 
+- Node.js and pnpm installed
+- Python 3.7+ (for authentication server)
+
 Before setting up Agent UI, you may want to have an Agno Playground running. If you haven't set up the Agno Playground yet, follow the [official guide](https://agno.link/agent-ui#connect-to-local-agents) to run the Playground locally.
+
+### Quick Start
+
+1. **Start the Authentication Server**
+   ```bash
+   cd server
+   ./start_auth_server.sh
+   ```
+
+2. **Start the Web Application**
+   ```bash
+   pnpm install
+   pnpm dev
+   ```
+
+3. **Access the Application**
+   - Open `http://localhost:3000`
+   - Use invitation code: **JK23** (Lorenzo) or **JK46** (Simone)
+
+For detailed setup instructions, see [AUTH_SETUP.md](./AUTH_SETUP.md).
 
 ### Installation
 

@@ -9,10 +9,12 @@ import { useQueryState } from 'nuqs'
 import SessionItem from './SessionItem'
 import SessionBlankState from './SessionBlankState'
 import useSessionLoader from '@/hooks/useSessionLoader'
+import useUserSessionManager from '@/hooks/useUserSessionManager'
 
 import { cn } from '@/lib/utils'
 import { FC } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getCurrentUser } from '@/lib/auth'
 
 interface SkeletonListProps {
   skeletonCount: number
@@ -52,7 +54,7 @@ const Sessions = () => {
     parse: (value) => value || undefined,
     history: 'push'
   })
-  const [sessionId] = useQueryState('session')
+  const [sessionId, setSessionId] = useQueryState('session')
   const {
     selectedEndpoint,
     isEndpointActive,
@@ -60,7 +62,8 @@ const Sessions = () => {
     sessionsData,
     hydrated,
     hasStorage,
-    setSessionsData
+    setSessionsData,
+    currentUserId
   } = usePlaygroundStore()
   const [isScrolling, setIsScrolling] = useState(false)
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
@@ -69,7 +72,10 @@ const Sessions = () => {
   const { getSession, getSessions } = useSessionLoader()
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null)
   const { isSessionsLoading } = usePlaygroundStore()
-
+  
+  // Gestisce automaticamente la pulizia dei messaggi quando cambia l'utente
+  useUserSessionManager()
+  
   const handleScroll = () => {
     setIsScrolling(true)
 
@@ -94,10 +100,27 @@ const Sessions = () => {
   // Load a session on render if a session id exists in url
   useEffect(() => {
     if (sessionId && agentId && selectedEndpoint && hydrated) {
-      getSession(sessionId, agentId)
+      // Verify the session belongs to current user before loading
+      const { userId } = getCurrentUser()
+      if (userId) {
+        // If sessionsData is available, check if session exists in user's sessions
+        if (sessionsData) {
+          const sessionExists = sessionsData.find(session => session.session_id === sessionId)
+          if (!sessionExists) {
+            console.warn('Session not found in user sessions, clearing URL parameter:', sessionId)
+            setSessionId(null)
+            return
+          }
+        }
+        // If sessionsData is not yet loaded, we'll let getSession handle the auth check
+        getSession(sessionId, agentId)
+      } else {
+        // No user logged in, clear the session
+        setSessionId(null)
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated])
+  }, [hydrated, sessionId, agentId, selectedEndpoint, sessionsData])
 
   useEffect(() => {
     if (!selectedEndpoint || !agentId || !hasStorage) {
@@ -105,8 +128,13 @@ const Sessions = () => {
       return
     }
     if (!isEndpointLoading) {
-      setSessionsData(() => null)
-      getSessions(agentId)
+      // Add a small delay to ensure auth cookies are available
+      setTimeout(() => {
+        const { userId } = getCurrentUser()
+        console.log('Loading sessions with userId:', userId)
+        setSessionsData(() => null)
+        getSessions(agentId)
+      }, 100)
     }
   }, [
     selectedEndpoint,
@@ -123,6 +151,17 @@ const Sessions = () => {
     }
   }, [sessionId])
 
+  // Ricarica le sessioni quando cambia l'utente
+  useEffect(() => {
+    if (currentUserId && selectedEndpoint && agentId && hasStorage && !isEndpointLoading) {
+      console.log('User changed, reloading sessions for userId:', currentUserId)
+      setSessionsData(() => null)
+      getSessions(agentId)
+    }
+  }, [currentUserId, selectedEndpoint, agentId, hasStorage, isEndpointLoading, getSessions, setSessionsData])
+
+
+
   const formattedSessionsData = useMemo(() => {
     if (!sessionsData || !Array.isArray(sessionsData)) return []
 
@@ -137,6 +176,8 @@ const Sessions = () => {
     (id: string) => () => setSelectedSessionId(id),
     []
   )
+
+
 
   if (isSessionsLoading || isEndpointLoading)
     return (

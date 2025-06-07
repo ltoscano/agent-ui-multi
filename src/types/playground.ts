@@ -203,6 +203,7 @@ export interface SessionEntry {
   session_id: string
   title: string
   created_at: number
+  user_id?: string | null
 }
 
 export interface ChatEntry {

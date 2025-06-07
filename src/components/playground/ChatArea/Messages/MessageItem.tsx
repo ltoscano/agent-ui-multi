@@ -12,7 +12,7 @@ interface MessageProps {
   message: PlaygroundChatMessage
 }
 
-const AgentMessage = ({ message }: MessageProps) => {
+const AgentMessage = memo(({ message }: MessageProps) => {
   const { streamingErrorMessage } = usePlaygroundStore()
   let messageContent
   if (message.streamingError) {
@@ -76,7 +76,7 @@ const AgentMessage = ({ message }: MessageProps) => {
       {messageContent}
     </div>
   )
-}
+})
 
 const UserMessage = memo(({ message }: MessageProps) => {
   return (

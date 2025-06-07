@@ -14,6 +14,7 @@ export type IconType =
   | 'xai'
   | 'agno'
   | 'user'
+  | 'user-outline'
   | 'agent'
   | 'open-ai'
   | 'sheet'
@@ -36,6 +37,10 @@ export type IconType =
   | 'plus-icon'
   | 'references'
   | 'trash'
+  | 'key'
+  | 'log-in'
+  | 'loader'
+  | 'alert-circle'
 
 export interface IconProps {
   type: IconType

@@ -38,15 +38,20 @@ export const getPlaygroundStatusAPI = async (base: string): Promise<number> => {
 
 export const getAllPlaygroundSessionsAPI = async (
   base: string,
-  agentId: string
+  agentId: string,
+  userId?: string
 ): Promise<SessionEntry[]> => {
   try {
-    const response = await fetch(
-      APIRoutes.GetPlaygroundSessions(base, agentId),
-      {
-        method: 'GET'
-      }
-    )
+    let url = APIRoutes.GetPlaygroundSessions(base, agentId)
+    
+    // Add user_id as query parameter if provided
+    if (userId) {
+      url += `?user_id=${encodeURIComponent(userId)}`
+    }
+    
+    const response = await fetch(url, {
+      method: 'GET'
+    })
     if (!response.ok) {
       if (response.status === 404) {
         // Return empty array when storage is not enabled

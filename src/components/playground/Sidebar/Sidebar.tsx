@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button'
 import { AgentSelector } from '@/components/playground/Sidebar/AgentSelector'
 import useChatActions from '@/hooks/useChatActions'
+import useUserSessionManager from '@/hooks/useUserSessionManager'
 import { usePlaygroundStore } from '@/store'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
@@ -211,6 +212,10 @@ const Sidebar = () => {
   } = usePlaygroundStore()
   const [isMounted, setIsMounted] = useState(false)
   const [agentId] = useQueryState('agent')
+  
+  // Gestisce automaticamente la pulizia dei messaggi quando cambia l'utente
+  useUserSessionManager()
+  
   useEffect(() => {
     setIsMounted(true)
     if (hydrated) initializePlayground()

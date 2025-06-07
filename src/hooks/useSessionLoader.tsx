@@ -12,6 +12,8 @@ import {
   ChatEntry
 } from '@/types/playground'
 import { getJsonMarkdown } from '@/lib/utils'
+import { getCurrentUser } from '@/lib/auth'
+import { useQueryState } from 'nuqs'
 
 interface SessionResponse {
   session_id: string
@@ -32,18 +34,33 @@ const useSessionLoader = () => {
     (state) => state.setIsSessionsLoading
   )
   const setSessionsData = usePlaygroundStore((state) => state.setSessionsData)
+  const [, setSessionId] = useQueryState('session')
 
   const getSessions = useCallback(
     async (agentId: string) => {
       if (!agentId || !selectedEndpoint) return
       try {
         setIsSessionsLoading(true)
-        const sessions = await getAllPlaygroundSessionsAPI(
+        
+        // Get current user info
+        const { userId } = getCurrentUser()
+        console.log('Loading sessions for userId:', userId) // Debug log
+        
+        // Get sessions from API with user filtering if available
+        const allSessions = await getAllPlaygroundSessionsAPI(
           selectedEndpoint,
-          agentId
+          agentId,
+          userId || undefined
         )
-        setSessionsData(sessions)
-      } catch {
+        
+        console.log('Sessions received from API:', allSessions.length) // Debug log
+        
+        // Server now handles user filtering with proper mapping
+        // No need for additional client-side filtering
+        setSessionsData(allSessions)
+        console.log('Final sessions for user:', allSessions.length) // Debug log
+      } catch (error) {
+        console.error('Error loading sessions:', error) // Debug log
         toast.error('Error loading sessions')
       } finally {
         setIsSessionsLoading(false)
@@ -51,6 +68,8 @@ const useSessionLoader = () => {
     },
     [selectedEndpoint, setSessionsData, setIsSessionsLoading]
   )
+
+
 
   const getSession = useCallback(
     async (sessionId: string, agentId: string) => {
