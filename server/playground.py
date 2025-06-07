@@ -49,13 +49,14 @@ image_agent = Agent(
     instructions=[
         "When the user asks you to create an image, use the DALL-E tool to create an image.",
         "The DALL-E tool will return an image URL.",
-        "Return the image URL in your response in the following format: `![image description](image URL)`",
+        "Respond with a brief description of what you created, but do not include the image URL in your text response.",
+        "The image will be displayed automatically by the system.",
     ],
     storage=SqliteStorage(table_name="image_agent", db_file=agent_storage),
     add_datetime_to_instructions=True,
     add_history_to_messages=True,
     num_history_responses=5,
-    markdown=False,
+    markdown=True,
 )
 
 # Create playground instance
