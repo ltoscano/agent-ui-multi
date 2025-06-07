@@ -5,12 +5,18 @@ import { Button } from '@/components/ui/button'
 import Icon from '@/components/ui/icon'
 import { logout, getCurrentUser } from '@/lib/auth'
 import { toast } from 'sonner'
+import LogoutConfirmModal from '@/components/auth/LogoutConfirmModal'
 
 const ChatHeader: FC = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
   const { username } = getCurrentUser()
 
-  const handleLogout = async () => {
+  const handleLogoutClick = () => {
+    setShowConfirmModal(true)
+  }
+
+  const handleConfirmLogout = async () => {
     setIsLoggingOut(true)
     try {
       await logout()
@@ -22,6 +28,13 @@ const ChatHeader: FC = () => {
       toast.error('Failed to logout')
     } finally {
       setIsLoggingOut(false)
+      setShowConfirmModal(false)
+    }
+  }
+
+  const handleCloseModal = () => {
+    if (!isLoggingOut) {
+      setShowConfirmModal(false)
     }
   }
 
@@ -36,7 +49,7 @@ const ChatHeader: FC = () => {
       )}
       
       <Button
-        onClick={handleLogout}
+        onClick={handleLogoutClick}
         disabled={isLoggingOut}
         variant="outline"
         size="sm"
@@ -54,6 +67,13 @@ const ChatHeader: FC = () => {
           </>
         )}
       </Button>
+      
+      <LogoutConfirmModal
+        isOpen={showConfirmModal}
+        onClose={handleCloseModal}
+        onConfirm={handleConfirmLogout}
+        isLoggingOut={isLoggingOut}
+      />
     </div>
   )
 }
