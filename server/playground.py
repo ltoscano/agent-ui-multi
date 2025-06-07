@@ -79,6 +79,20 @@ app = playground.get_app()
 #     # Temporarily disabled due to import issues
 #     return JSONResponse(status_code=501, content={"error": "Endpoint disabled"})
 
+# Override the default sessions endpoint to add user filtering
+from fastapi.routing import APIRoute
+
+# First, let's find and override the existing route
+existing_routes = []
+for route in app.routes:
+    if hasattr(route, 'path') and "/sessions" in route.path and hasattr(route, 'methods') and "GET" in route.methods:
+        existing_routes.append(route)
+
+# Remove existing routes that match our pattern  
+for route in existing_routes:
+    if route.path == "/v1/playground/agents/{agent_id}/sessions":
+        app.routes.remove(route)
+
 # Custom endpoint to get user-specific sessions
 @app.get("/v1/playground/agents/{agent_id}/sessions")
 async def get_user_sessions(
@@ -88,18 +102,38 @@ async def get_user_sessions(
 ):
     """Get sessions filtered by user_id if provided"""
     try:
-        # Find the agent
+        # Dynamically find the agent from the playground instance
         agent = None
-        for a in [web_agent, finance_agent]:
+        for a in playground.agents:
             if a.agent_id == agent_id:
                 agent = a
                 break
         
-        if not agent or not agent.storage:
-            return JSONResponse(status_code=404, content={"error": "Agent or storage not found"})
+        if not agent:
+            return JSONResponse(status_code=404, content={"error": "Agent not found"})
+        
+        if not agent.storage:
+            return JSONResponse(status_code=404, content={"error": "Agent storage not found"})
         
         # Get all sessions from storage
         sessions = agent.storage.get_all_sessions()
+        
+        # Extract title from first user message in memory for each session
+        def extract_title_from_session(session):
+            try:
+                memory = getattr(session, 'memory', {})
+                if memory and 'runs' in memory and len(memory['runs']) > 0:
+                    first_run = memory['runs'][0]
+                    if 'messages' in first_run and len(first_run['messages']) > 1:
+                        # Skip system message (index 0), get user message (index 1)
+                        user_message = first_run['messages'][1]
+                        if user_message.get('role') == 'user' and user_message.get('content'):
+                            title = str(user_message['content'])[:50]
+                            return title if title else 'Untitled'
+                return 'Untitled'
+            except Exception as e:
+                print(f"Error extracting title: {e}")
+                return 'Untitled'
         
         # Filter by user_id if provided
         if user_id:
@@ -114,10 +148,11 @@ async def get_user_sessions(
             filtered_sessions = []
             for session in sessions:
                 session_user_id = getattr(session, 'user_id', None)
+                # Only include sessions that explicitly match the user_id (no null sessions)
                 if session_user_id in possible_user_ids:
                     filtered_sessions.append({
                         "session_id": session.session_id,
-                        "title": getattr(session, 'title', 'Untitled'),
+                        "title": extract_title_from_session(session),
                         "created_at": getattr(session, 'created_at', 0),
                         "updated_at": getattr(session, 'updated_at', 0),
                         "user_id": session_user_id
@@ -128,7 +163,7 @@ async def get_user_sessions(
             return [
                 {
                     "session_id": session.session_id,
-                    "title": getattr(session, 'title', 'Untitled'),
+                    "title": extract_title_from_session(session),
                     "created_at": getattr(session, 'created_at', 0),
                     "updated_at": getattr(session, 'updated_at', 0),
                     "user_id": getattr(session, 'user_id', None)
