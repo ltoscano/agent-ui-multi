@@ -147,6 +147,7 @@ export default function useAIResponseStream() {
         // Recursively process the stream.
         const processStream = async (): Promise<void> => {
           const { done, value } = await reader.read()
+          console.log("Chunk:", decoder.decode(value, { stream: true }))
           if (done) {
             // Process any final data in the buffer.
             buffer = parseBuffer(buffer, onChunk)
