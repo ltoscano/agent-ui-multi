@@ -6,6 +6,7 @@ from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.yfinance import YFinanceTools
 from fastapi import Request, Query, Form
 from fastapi.responses import JSONResponse, StreamingResponse
+from agno.tools.dalle import DalleTools
 from typing import Optional
 import json
 
@@ -40,8 +41,25 @@ finance_agent = Agent(
     markdown=True,
 )
 
+image_agent = Agent(
+    name="Image Agent",
+    model=OpenAIChat(id="gpt-4o"),
+    tools=[DalleTools()],
+    description="You are an AI agent that can create images using DALL-E.",
+    instructions=[
+        "When the user asks you to create an image, use the DALL-E tool to create an image.",
+        "The DALL-E tool will return an image URL.",
+        "Return the image URL in your response in the following format: `![image description](image URL)`",
+    ],
+    storage=SqliteStorage(table_name="image_agent", db_file=agent_storage),
+    add_datetime_to_instructions=True,
+    add_history_to_messages=True,
+    num_history_responses=5,
+    markdown=False,
+)
+
 # Create playground instance
-playground = Playground(agents=[web_agent, finance_agent])
+playground = Playground(agents=[web_agent, finance_agent, image_agent])
 
 # Get the FastAPI app
 app = playground.get_app()
